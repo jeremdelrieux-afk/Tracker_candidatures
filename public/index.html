@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tracker de candidatures</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 30px auto; padding: 0 16px; color: #222; background:#fafafa; }
+  h1 { font-size: 20px; font-weight: 600; }
+  .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid #ddd; }
+  .tab { padding:8px 16px; cursor:pointer; border:none; background:transparent; font-size:14px; border-bottom:2px solid transparent; }
+  .tab.active { border-bottom:2px solid #333; font-weight:600; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+  button { padding:8px 14px; border-radius:8px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:13px; }
+  button:hover { background:#f0f0f0; }
+  #stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:20px; }
+  .card { background:#fff; border:1px solid #e5e5e5; border-radius:8px; padding:12px; }
+  .card .label { font-size:12px; color:#777; }
+  .card .value { font-size:22px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
+  th, td { padding:6px 8px; border-bottom:1px solid #eee; text-align:left; }
+  th { background:#f5f5f3; font-weight:600; }
+  input, select { width:100%; border:none; background:transparent; font-size:13px; padding:2px; }
+  input:focus, select:focus { outline:1px solid #999; border-radius:4px; }
+  .delBtn { border:none; background:transparent; cursor:pointer; color:#a33; font-size:14px; }
+  .addBtn2 { border:none; background:transparent; cursor:pointer; color:#178; font-size:13px; }
+  #empty, #emptyVeille { color:#888; font-size:13px; }
+  .note { font-size:12px; color:#999; margin-top:20px; }
+  a { color:#178; }
+</style>
+</head>
+<body>
+
+<h1>Suivi de candidatures</h1>
+<div class="tabs">
+  <button class="tab active" data-tab="tracker">Tracker</button>
+  <button class="tab" data-tab="veille">Veille (offres France Travail)</button>
+</div>
+
+<!-- ===== ONGLET TRACKER ===== -->
+<div id="panel-tracker" class="panel active">
+  <div class="toolbar">
+    <div style="display:flex;gap:8px;">
+      <button id="addBtn">+ Ajouter</button>
+      <button id="exportBtn">Exporter (JSON)</button>
+      <button id="importBtn">Importer</button>
+      <input type="file" id="fileInput" accept=".json" style="display:none;">
+    </div>
+  </div>
+  <div id="stats"></div>
+  <table>
+    <thead>
+      <tr>
+        <th>Entreprise</th><th>Poste</th><th>Source</th><th>Date envoi</th>
+        <th>Statut</th><th>Relance prévue</th><th>Notes</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p id="empty" style="display:none;">Aucune candidature enregistrée. Clique sur "+ Ajouter".</p>
+  <p class="note">Sauvegarde automatique dans ce navigateur. Utilise "Exporter" régulièrement pour garder une copie de sauvegarde.</p>
+</div>
+
+<!-- ===== ONGLET VEILLE ===== -->
+<div id="panel-veille" class="panel">
+  <div class="toolbar">
+    <div style="display:flex;gap:8px;">
+      <button id="loadVeilleBtn">Charger data/offres_veille.json</button>
+      <input type="file" id="veilleFileInput" accept=".json" style="display:none;">
+    </div>
+    <span id="veilleCount" style="font-size:13px;color:#777;"></span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Intitulé</th><th>Entreprise</th><th>Lieu</th><th>Date pub.</th><th>Contrat</th><th>Lien</th><th></th></tr>
+    </thead>
+    <tbody id="veilleRows"></tbody>
+  </table>
+  <p id="emptyVeille">Charge le fichier data/offres_veille.json généré par <code>npm run veille</code>.</p>
+  <p class="note">Clique sur "Ajouter au tracker" pour créer une ligne de candidature préremplie. Lance <code>npm run veille</code> régulièrement (cron ou manuellement) pour rafraîchir ce fichier, puis recharge-le ici.</p>
+</div>
+
+<script>
+(function(){
+  // ---------- TRACKER ----------
+  const KEY = 'candidatures_dje';
+  let data = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const statuses = ["Envoyée","Relancée","Entretien prévu","Entretien passé","Refus","Acceptée"];
+  const statusColors = {
+    "Envoyée": "#e6f1fb", "Relancée": "#faeeda", "Entretien prévu": "#eaf3de",
+    "Entretien passé": "#e1f5ee", "Refus": "#fcebeb", "Acceptée": "#d7f2c5"
+  };
+  function save(){ localStorage.setItem(KEY, JSON.stringify(data)); }
+  function uid(){ return 'c'+Date.now()+Math.floor(Math.random()*1000); }
+  function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+  function addRow(prefill){
+    data.unshift(Object.assign({ id: uid(), entreprise:'', poste:'', source:'France Travail',
+      dateEnvoi:new Date().toISOString().slice(0,10), statut:'Envoyée', relance:'', notes:'' }, prefill||{}));
+    save(); render();
+  }
+  function updateField(id, field, value){
+    const row = data.find(d=>d.id===id);
+    if(row){ row[field]=value; save(); if(field==='statut') render(); }
+  }
+  function deleteRow(id){ data = data.filter(d=>d.id!==id); save(); render(); }
+
+  function renderStats(){
+    const counts = {}; statuses.forEach(s=>counts[s]=0);
+    data.forEach(d=>{ if(counts[d.statut]!==undefined) counts[d.statut]++; });
+    const cards = [
+      {label:'Total', value:data.length},
+      {label:'En attente', value:counts['Envoyée']+counts['Relancée']},
+      {label:'Entretiens', value:counts['Entretien prévu']+counts['Entretien passé']},
+      {label:'Refus', value:counts['Refus']}
+    ];
+    document.getElementById('stats').innerHTML = cards.map(c=>
+      `<div class="card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`
+    ).join('');
+  }
+
+  function render(){
+    renderStats();
+    const tbody = document.getElementById('rows');
+    document.getElementById('empty').style.display = data.length ? 'none' : 'block';
+    tbody.innerHTML = data.map(d => `
+      <tr>
+        <td><input value="${esc(d.entreprise)}" placeholder="Entreprise" data-id="${d.id}" data-field="entreprise"/></td>
+        <td><input value="${esc(d.poste)}" placeholder="Poste" data-id="${d.id}" data-field="poste"/></td>
+        <td><select data-id="${d.id}" data-field="source">
+          ${["France Travail","HelloWork","Indeed","Spontanée","Autre"].map(s=>`<option ${s===d.source?'selected':''}>${s}</option>`).join('')}
+        </select></td>
+        <td><input type="date" value="${d.dateEnvoi}" data-id="${d.id}" data-field="dateEnvoi"/></td>
+        <td><select data-id="${d.id}" data-field="statut" style="background:${statusColors[d.statut]||'#eee'};border-radius:6px;padding:3px 6px;">
+          ${statuses.map(s=>`<option ${s===d.statut?'selected':''}>${s}</option>`).join('')}
+        </select></td>
+        <td><input type="date" value="${d.relance||''}" data-id="${d.id}" data-field="relance"/></td>
+        <td><input value="${esc(d.notes)}" placeholder="Notes" data-id="${d.id}" data-field="notes"/></td>
+        <td><button class="delBtn" data-id="${d.id}">✕</button></td>
+      </tr>`).join('');
+
+    tbody.querySelectorAll('input,select').forEach(el=>{
+      el.addEventListener('change', e=> updateField(e.target.dataset.id, e.target.dataset.field, e.target.value));
+    });
+    tbody.querySelectorAll('.delBtn').forEach(btn=>{
+      btn.addEventListener('click', e=> deleteRow(e.target.dataset.id));
+    });
+  }
+
+  document.getElementById('addBtn').addEventListener('click', ()=>addRow());
+  document.getElementById('exportBtn').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'candidatures_backup.json';
+    a.click(); URL.revokeObjectURL(url);
+  });
+  document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt)=>{
+      try{
+        const imported = JSON.parse(evt.target.result);
+        if(Array.isArray(imported)){ data = imported; save(); render(); }
+        else alert('Fichier invalide.');
+      }catch(err){ alert('Impossible de lire ce fichier JSON.'); }
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- VEILLE ----------
+  let veille = [];
+  function renderVeille(){
+    document.getElementById('veilleCount').textContent = veille.length + ' offre(s) en base';
+    document.getElementById('emptyVeille').style.display = veille.length ? 'none' : 'block';
+    document.getElementById('veilleRows').innerHTML = veille.map((o, i) => `
+      <tr>
+        <td>${esc(o.intitule)}</td>
+        <td>${esc(o.entreprise)}</td>
+        <td>${esc(o.lieu)}</td>
+        <td>${o.dateCreation ? o.dateCreation.slice(0,10) : ''}</td>
+        <td>${esc(o.typeContrat||'')}</td>
+        <td><a href="${o.url}" target="_blank" rel="noopener">Voir l'offre</a></td>
+        <td><button class="addBtn2" data-idx="${i}">+ Ajouter au tracker</button></td>
+      </tr>`).join('');
+
+    document.querySelectorAll('.addBtn2').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const o = veille[e.target.dataset.idx];
+        addRow({ entreprise:o.entreprise, poste:o.intitule, source:'France Travail', notes:o.url });
+        document.querySelector('[data-tab="tracker"]').click();
+      });
+    });
+  }
+
+  document.getElementById('loadVeilleBtn').addEventListener('click', ()=> document.getElementById('veilleFileInput').click());
+  document.getElementById('veilleFileInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt)=>{
+      try{ veille = JSON.parse(evt.target.result); renderVeille(); }
+      catch(err){ alert('Impossible de lire ce fichier JSON.'); }
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- TABS ----------
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  render();
+  renderVeille();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "tracker-candidatures",
+  "version": "1.0.0",
+  "description": "Tracker de candidatures + veille automatisée sur l'API France Travail",
+  "type": "module",
+  "scripts": {
+    "test-api": "node scripts/test-api-francetravail.mjs",
+    "veille": "node scripts/search-offres.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
