@@ -4,20 +4,19 @@ Suivi de candidatures + veille automatisée sur l'API France Travail (offres d'e
 
 ## Structure
 
-```
 tracker-candidatures/
-├── .env.example          # modèle des identifiants (à copier en .env, jamais commité)
+├── .env.example
 ├── .gitignore
 ├── package.json
 ├── public/
-│   └── index.html        # interface web (Tracker + Veille), ouvrir directement dans un navigateur
+│ └── index.html
 ├── scripts/
-│   ├── lib/auth.mjs              # authentification OAuth2 France Travail
-│   ├── test-api-francetravail.mjs # test de connexion rapide
-│   └── search-offres.mjs          # veille : interroge l'API selon tes critères
+│ ├── lib/auth.mjs
+│ ├── test-api-francetravail.mjs
+│ └── search-offres.mjs
 └── data/
-    └── offres_veille.json  # généré automatiquement par search-offres.mjs
-```
+└── offres_veille.json
+
 
 ## Installation
 
@@ -27,7 +26,8 @@ cp .env.example .env
 ```
 
 Remplis `.env` avec ton Client ID / Client Secret récupérés sur francetravail.io
-(Mon espace → Mes applications → ton application → onglet clés d'accès).
+(Mon espace → Mes applications → ton application → onglet clés d'accès), et
+vérifie que ton application a bien souscrit à l'API "Offres d'emploi v2".
 
 ## Test de connexion
 
@@ -35,25 +35,23 @@ Remplis `.env` avec ton Client ID / Client Secret récupérés sur francetravail
 npm run test-api
 ```
 
-Doit afficher les premières offres trouvées pour "informatique" dans le 83.
-
 ## Lancer la veille
 
-Personnalise tes critères de recherche dans `scripts/search-offres.mjs`
-(section `CRITERES` en haut du fichier — mots-clés, département, rayon en km),
-puis :
+Personnalise tes critères dans `scripts/search-offres.mjs` (section `CRITERES`
+en haut) : `motsCles`, `commune` (code INSEE, pas le code postal — ex. 83118
+pour Saint-Raphaël, 06088 pour Cannes), `distance` en km. Le paramètre
+`distance` n'a d'effet que combiné à `commune` : sans point central précis,
+l'API renvoie tout le département.
 
 ```bash
 npm run veille
 ```
 
-Ça écrit/complète `data/offres_veille.json` avec les nouvelles offres, sans
-doublons (déduplication par ID d'offre).
+Écrit/complète `data/offres_veille.json`. Déduplique par ID d'offre et par
+paire entreprise+intitulé (pour éviter le bruit des diffusions multi-villes).
 
-Pour automatiser (ex. tous les matins), configure une tâche cron ou planifiée :
-
+Automatisation possible via cron :
 ```bash
-# crontab -e — exécution tous les jours à 8h
 0 8 * * * cd /chemin/vers/tracker-candidatures && npm run veille
 ```
 
@@ -61,17 +59,14 @@ Pour automatiser (ex. tous les matins), configure une tâche cron ou planifiée 
 
 Ouvre `public/index.html` dans un navigateur.
 
-- **Onglet Tracker** : suivi manuel de tes candidatures (statut, dates,
-  relances, notes). Sauvegarde automatique dans le navigateur (localStorage).
-  Utilise "Exporter" régulièrement pour garder une sauvegarde `.json`.
-- **Onglet Veille** : charge `data/offres_veille.json` (bouton "Charger"),
-  parcours les offres trouvées, clique sur "+ Ajouter au tracker" pour
-  créer une ligne de candidature préremplie.
+- **Onglet Tracker** : suivi manuel (statut, dates, relances, notes),
+  sauvegarde locale navigateur. Exporte régulièrement en `.json`.
+- **Onglet Veille** : charge `data/offres_veille.json`, bouton
+  "+ Ajouter au tracker" pour préremplir une candidature.
 
 ## Sécurité
 
-- `.env` est exclu du dépôt via `.gitignore` — ne le commite jamais.
-- Ne partage jamais ton `Client Secret`, même en privé.
-- Si un secret est accidentellement commité, considère-le compromis :
-  régénère-le sur francetravail.io plutôt que de simplement le supprimer
-  du dernier commit (il resterait dans l'historique git).
+- `.env` exclu via `.gitignore`, jamais commité.
+- Ne partage jamais ton Client Secret.
+- Un secret exposé accidentellement doit être régénéré sur francetravail.io,
+  pas juste supprimé du dernier commit (reste dans l'historique git).
