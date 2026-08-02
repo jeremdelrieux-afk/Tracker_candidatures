@@ -449,6 +449,8 @@
     }).join(' ');
   }
 
+  const COMPANY_CONNECTORS = new Set(['de','du','des','le','la','les','et','en','aux','à','l','sur']);
+  const COMPANY_ACRONYMS = new Set(['SSI','IT','RH','SA','SAS','SARL','SNC','EURL','LTD','PLC','INC','LLC','GMBH','DSI','ERP','CRM']);
   function normalizeCompany(str){
     if (!str) return str;
     const letters = str.replace(/[^a-zA-ZÀ-ÿ]/g,'');
@@ -456,7 +458,10 @@
     if (!letters.length || upperCount / letters.length < 0.6) return str; // déjà correctement casé
     return str.split(' ').map(word=>{
       const bare = word.replace(/[(),.]/g,'');
-      if (/\d/.test(word) || bare.length <= 3) return word; // garde sigles courts et codes alphanumériques
+      if (/\d/.test(word)) return word; // garde les tokens avec chiffres (3D, codes...)
+      if (COMPANY_CONNECTORS.has(bare.toLowerCase())) return bare.toLowerCase() + word.slice(bare.length);
+      if (COMPANY_ACRONYMS.has(bare.toUpperCase())) return word; // garde les sigles reconnus tels quels
+      if (bare.length <= 2) return word; // sécurité pour les sigles non répertoriés très courts
       return word.replace(/^(\W*)(\w)(.*)$/u, (m,p1,p2,p3)=> p1 + p2.toUpperCase() + p3.toLowerCase());
     }).join(' ');
   }
