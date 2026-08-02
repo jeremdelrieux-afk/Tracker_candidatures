@@ -235,7 +235,11 @@
   };
   function save(){ localStorage.setItem(KEY, JSON.stringify(data)); }
   function uid(){ return 'c'+Date.now()+Math.floor(Math.random()*1000); }
-  function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
+  function esc(s){
+    return (s||'').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
 
   function addRow(prefill){
     data.unshift(Object.assign({ id: uid(), entreprise:'', poste:'', source:'France Travail',
