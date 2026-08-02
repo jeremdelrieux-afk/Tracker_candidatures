@@ -74,7 +74,7 @@
   a { color:var(--accent); text-decoration:none; }
   a:hover { text-decoration:underline; }
   code { font-family:var(--font-mono); letter-spacing:normal; background:var(--mist); padding:1px 5px; border-radius:4px; font-size:12px; border:1px solid var(--border); }
-  .filter-pop { position:absolute; top:calc(100% + 4px); left:0; z-index:20; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(18,24,38,0.14); min-width:260px; max-width:340px; padding:8px; text-transform:none; letter-spacing:normal; font-weight:400; color:var(--ink); font-size:13px; }
+  .filter-pop { position:absolute; top:calc(100% + 4px); left:0; z-index:20; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(18,24,38,0.14); min-width:200px; max-width:260px; padding:8px; text-transform:none; letter-spacing:normal; font-weight:400; color:var(--ink); font-size:13px; }
   .filter-pop-actions { display:flex; justify-content:space-between; gap:6px; padding:4px 4px 8px; border-bottom:1px solid var(--border); margin-bottom:6px; }
   .filter-pop-actions button { font-size:11px; padding:3px 8px; border-radius:6px; }
   .filter-pop-list { max-height:220px; overflow-y:auto; }
@@ -83,6 +83,14 @@
   .filter-pop-item input { width:auto; margin:0; }
   .filter-pop-item span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .filter-pop-item .count { font-family:var(--font-mono); font-size:11px; color:var(--slate-light); }
+  .histBtn { border:none; background:transparent; cursor:pointer; font-size:13px; padding:2px 4px; border-radius:6px; opacity:.55; }
+  .histBtn:hover { opacity:1; background:var(--mist); }
+  .hist-pop { position:absolute; z-index:30; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(18,24,38,0.16); min-width:220px; max-width:280px; padding:10px 12px; font-size:12px; color:var(--ink); }
+  .hist-pop h4 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--slate-light); font-weight:600; }
+  .hist-item { display:flex; align-items:baseline; gap:8px; padding:5px 0; border-bottom:1px solid var(--border); }
+  .hist-item:last-child { border-bottom:none; }
+  .hist-item .hist-date { font-family:var(--font-mono); font-size:11px; color:var(--slate-light); white-space:nowrap; }
+  .hist-item .hist-statut { font-weight:600; }
 </style>
 </head>
 <body>
@@ -164,12 +172,19 @@
 
   function addRow(prefill){
     data.unshift(Object.assign({ id: uid(), entreprise:'', poste:'', source:'France Travail',
-      dateEnvoi:new Date().toISOString().slice(0,10), statut:'Envoyée', relance:'', notes:'' }, prefill||{}));
+      dateEnvoi:new Date().toISOString().slice(0,10), statut:'Envoyée', relance:'', notes:'',
+      historique: [{ date: new Date().toISOString(), statut: 'Envoyée' }] }, prefill||{}));
     save(); render();
   }
   function updateField(id, field, value){
     const row = data.find(d=>d.id===id);
-    if(row){ row[field]=value; save(); if(field==='statut') render(); }
+    if(row){
+      if(field==='statut' && row.statut !== value){
+        if(!Array.isArray(row.historique)) row.historique = [];
+        row.historique.push({ date: new Date().toISOString(), statut: value });
+      }
+      row[field]=value; save(); if(field==='statut') render();
+    }
   }
   function deleteRow(id){ data = data.filter(d=>d.id!==id); save(); render(); }
 
@@ -201,9 +216,14 @@
           ${["France Travail","HelloWork","Indeed","Spontanée","Autre"].map(s=>`<option ${s===d.source?'selected':''}>${s}</option>`).join('')}
         </select></td>
         <td><input type="date" value="${d.dateEnvoi}" data-id="${d.id}" data-field="dateEnvoi"/></td>
-        <td><select data-id="${d.id}" data-field="statut" class="status-pill" style="background:${sc.bg};color:${sc.fg};">
-          ${statuses.map(s=>`<option ${s===d.statut?'selected':''}>${s}</option>`).join('')}
-        </select></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <select data-id="${d.id}" data-field="statut" class="status-pill" style="background:${sc.bg};color:${sc.fg};">
+              ${statuses.map(s=>`<option ${s===d.statut?'selected':''}>${s}</option>`).join('')}
+            </select>
+            <button type="button" class="histBtn" data-id="${d.id}" title="Voir l'historique des statuts">🕓</button>
+          </div>
+        </td>
         <td><input type="date" value="${d.relance||''}" data-id="${d.id}" data-field="relance"/></td>
         <td><input type="text" value="${esc(d.notes)}" placeholder="Notes" data-id="${d.id}" data-field="notes"/></td>
         <td><button class="delBtn" data-id="${d.id}" title="Supprimer">✕</button></td>
@@ -216,6 +236,53 @@
     tbody.querySelectorAll('.delBtn').forEach(btn=>{
       btn.addEventListener('click', e=> deleteRow(e.target.dataset.id));
     });
+    tbody.querySelectorAll('.histBtn').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        toggleHistPopover(btn, btn.dataset.id);
+      });
+    });
+  }
+
+  function formatDateHeure(iso){
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    const jj = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const aaaa = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const min = String(d.getMinutes()).padStart(2,'0');
+    return `${jj}/${mm}/${aaaa} ${hh}:${min}`;
+  }
+
+  function closeHistPopover(){
+    const existing = document.querySelector('.hist-pop');
+    if (existing) existing.remove();
+    document.removeEventListener('click', histOutsideClickHandler);
+  }
+  function histOutsideClickHandler(e){
+    if (!e.target.closest('.hist-pop') && !e.target.closest('.histBtn')) closeHistPopover();
+  }
+  function toggleHistPopover(btn, id){
+    const already = document.querySelector('.hist-pop');
+    closeHistPopover();
+    if (already && already.dataset.forId === id) return;
+
+    const row = data.find(d=>d.id===id);
+    const hist = (row && Array.isArray(row.historique)) ? [...row.historique].reverse() : [];
+    const pop = document.createElement('div');
+    pop.className = 'hist-pop';
+    pop.dataset.forId = id;
+    pop.innerHTML = `<h4>Historique des statuts</h4>` + (
+      hist.length
+        ? hist.map(h => `<div class="hist-item"><span class="hist-date">${formatDateHeure(h.date)}</span><span class="hist-statut">${esc(h.statut)}</span></div>`).join('')
+        : `<div class="hist-item">Aucun historique enregistré pour cette ligne.</div>`
+    );
+    document.body.appendChild(pop);
+    const r = btn.getBoundingClientRect();
+    pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
+    pop.style.left = (window.scrollX + r.left - 200) + 'px';
+    setTimeout(()=> document.addEventListener('click', histOutsideClickHandler), 0);
   }
 
   document.getElementById('addBtn').addEventListener('click', ()=>addRow());
@@ -316,7 +383,7 @@
         ${values.map(v=>{
           const count = veille.filter(o=>(o[key]||'').trim()===v).length;
           const checked = selected.size===0 || selected.has(v);
-          return `<label class="filter-pop-item" title="${esc(v)}">
+          return `<label class="filter-pop-item">
             <input type="checkbox" data-val="${esc(v)}" ${checked?'checked':''}>
             <span>${esc(v)}</span><span class="count">${count}</span>
           </label>`;
