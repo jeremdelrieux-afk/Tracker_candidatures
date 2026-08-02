@@ -74,7 +74,7 @@
   a { color:var(--accent); text-decoration:none; }
   a:hover { text-decoration:underline; }
   code { font-family:var(--font-mono); letter-spacing:normal; background:var(--mist); padding:1px 5px; border-radius:4px; font-size:12px; border:1px solid var(--border); }
-  .filter-pop { position:absolute; top:calc(100% + 4px); left:0; z-index:20; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(18,24,38,0.14); min-width:200px; max-width:260px; padding:8px; text-transform:none; letter-spacing:normal; font-weight:400; color:var(--ink); font-size:13px; }
+  .filter-pop { position:absolute; top:calc(100% + 4px); left:0; z-index:20; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(18,24,38,0.14); min-width:260px; max-width:340px; padding:8px; text-transform:none; letter-spacing:normal; font-weight:400; color:var(--ink); font-size:13px; }
   .filter-pop-actions { display:flex; justify-content:space-between; gap:6px; padding:4px 4px 8px; border-bottom:1px solid var(--border); margin-bottom:6px; }
   .filter-pop-actions button { font-size:11px; padding:3px 8px; border-radius:6px; }
   .filter-pop-list { max-height:220px; overflow-y:auto; }
@@ -316,7 +316,7 @@
         ${values.map(v=>{
           const count = veille.filter(o=>(o[key]||'').trim()===v).length;
           const checked = selected.size===0 || selected.has(v);
-          return `<label class="filter-pop-item">
+          return `<label class="filter-pop-item" title="${esc(v)}">
             <input type="checkbox" data-val="${esc(v)}" ${checked?'checked':''}>
             <span>${esc(v)}</span><span class="count">${count}</span>
           </label>`;
