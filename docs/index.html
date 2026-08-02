@@ -254,6 +254,18 @@
     return clean;
   }
 
+  // Valide qu'une URL utilise bien http(s) avant de l'utiliser dans un lien,
+  // pour empêcher l'exécution de javascript: ou d'autres protocoles dangereux
+  // si l'URL provient d'une source externe (API, import JSON).
+  function safeUrl(u){
+    if (typeof u !== 'string') return '#';
+    try {
+      const parsed = new URL(u, window.location.href);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return u;
+    } catch(e) {}
+    return '#';
+  }
+
   function addRow(prefill){
     data.unshift(Object.assign({ id: uid(), entreprise:'', poste:'', source:'France Travail',
       dateEnvoi:new Date().toISOString().slice(0,10), statut:'Envoyée', relance:'', notes:'',
@@ -660,7 +672,7 @@
     document.getElementById('modalDesc').textContent = o.description && o.description.trim()
       ? o.description.trim()
       : "Pas de description détaillée disponible pour cette offre — consulte l'annonce complète sur France Travail.";
-    document.getElementById('modalLink').href = o.url;
+    document.getElementById('modalLink').href = safeUrl(o.url);
     document.getElementById('modalOverlay').classList.add('open');
   }
   function closeOfferModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
@@ -695,7 +707,7 @@
         <td>${esc(normalizeLieu(o.lieu))}</td>
         <td><div class="date-cell">${recent ? '<span class="new-dot" title="Publiée il y a moins de 48h"></span>' : ''}${formatDateRelative(o.dateCreation)}</div></td>
         <td><span class="contrat-badge ${contratBadgeClass(o.typeContrat)}">${esc(o.typeContrat||'—')}</span></td>
-        <td><a href="${o.url}" target="_blank" rel="noopener">Voir l'offre →</a></td>
+        <td><a href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener">Voir l'offre →</a></td>
         <td><button class="addBtn2 ${already?'added':''}" data-idx="${i}" ${already?'disabled':''}>${already ? '✓ Ajouté' : '+ Ajouter au tracker'}</button></td>
       </tr>`;
     }).join('');
