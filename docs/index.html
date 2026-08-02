@@ -449,9 +449,22 @@
     }).join(' ');
   }
 
+  function normalizeCompany(str){
+    if (!str) return str;
+    const letters = str.replace(/[^a-zA-ZÀ-ÿ]/g,'');
+    const upperCount = (str.match(/[A-ZÀ-Þ]/g)||[]).length;
+    if (!letters.length || upperCount / letters.length < 0.6) return str; // déjà correctement casé
+    return str.split(' ').map(word=>{
+      const bare = word.replace(/[(),.]/g,'');
+      if (/\d/.test(word) || bare.length <= 3) return word; // garde sigles courts et codes alphanumériques
+      return word.replace(/^(\W*)(\w)(.*)$/u, (m,p1,p2,p3)=> p1 + p2.toUpperCase() + p3.toLowerCase());
+    }).join(' ');
+  }
+
   function colVal(o, key){
     if (key === 'lieu') return normalizeLieu(o.lieu) || '';
     if (key === 'intitule') return normalizeIntitule(o.intitule) || '';
+    if (key === 'entreprise') return normalizeCompany(o.entreprise) || '';
     return (o[key]||'').trim();
   }
 
@@ -621,7 +634,7 @@
 
   function openOfferModal(o){
     document.getElementById('modalTitle').textContent = normalizeIntitule(o.intitule) || '';
-    document.getElementById('modalMeta').textContent = [o.entreprise, o.lieu, o.typeContrat].filter(Boolean).join(' · ');
+    document.getElementById('modalMeta').textContent = [normalizeCompany(o.entreprise), normalizeLieu(o.lieu), o.typeContrat].filter(Boolean).join(' · ');
     document.getElementById('modalDesc').textContent = o.description && o.description.trim()
       ? o.description.trim()
       : "Pas de description détaillée disponible pour cette offre — consulte l'annonce complète sur France Travail.";
@@ -656,7 +669,7 @@
       return `
       <tr>
         <td><span class="intitule-link" data-idx="${i}">${highlightKeywords(normalizeIntitule(o.intitule))}</span></td>
-        <td>${esc(o.entreprise)}</td>
+        <td>${esc(normalizeCompany(o.entreprise))}</td>
         <td>${esc(normalizeLieu(o.lieu))}</td>
         <td><div class="date-cell">${recent ? '<span class="new-dot" title="Publiée il y a moins de 48h"></span>' : ''}${formatDateRelative(o.dateCreation)}</div></td>
         <td><span class="contrat-badge ${contratBadgeClass(o.typeContrat)}">${esc(o.typeContrat||'—')}</span></td>
@@ -675,7 +688,7 @@
       if (btn.disabled) return;
       btn.addEventListener('click', (e)=>{
         const o = veille[e.target.dataset.idx];
-        addRow({ entreprise:o.entreprise, poste:normalizeIntitule(o.intitule), source:'France Travail', notes:o.url });
+        addRow({ entreprise:normalizeCompany(o.entreprise), poste:normalizeIntitule(o.intitule), source:'France Travail', notes:o.url });
         addedIds.add(o.id);
         saveAddedIds();
         showToast(`« ${o.intitule} » ajoutée au tracker`);
