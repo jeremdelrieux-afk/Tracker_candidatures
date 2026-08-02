@@ -241,10 +241,23 @@
     }[c]));
   }
 
+  // Retire les clés dangereuses (__proto__, constructor, prototype) d'un objet
+  // avant de le fusionner avec Object.assign, pour éviter toute pollution de prototype
+  // si l'objet provient d'une source externe (import JSON, données API).
+  function sanitizeObject(obj){
+    if (!obj || typeof obj !== 'object') return {};
+    const clean = {};
+    for (const key of Object.keys(obj)){
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+      clean[key] = obj[key];
+    }
+    return clean;
+  }
+
   function addRow(prefill){
     data.unshift(Object.assign({ id: uid(), entreprise:'', poste:'', source:'France Travail',
       dateEnvoi:new Date().toISOString().slice(0,10), statut:'Envoyée', relance:'', notes:'',
-      historique: [{ date: new Date().toISOString(), statut: 'Envoyée' }] }, prefill||{}));
+      historique: [{ date: new Date().toISOString(), statut: 'Envoyée' }] }, sanitizeObject(prefill)));
     save(); render();
   }
   function updateField(id, field, value){
@@ -372,7 +385,7 @@
     reader.onload = (evt)=>{
       try{
         const imported = JSON.parse(evt.target.result);
-        if(Array.isArray(imported)){ data = imported; save(); render(); }
+        if(Array.isArray(imported)){ data = imported.map(sanitizeObject); save(); render(); }
         else alert('Fichier invalide.');
       }catch(err){ alert('Impossible de lire ce fichier JSON.'); }
     };
@@ -723,7 +736,7 @@
     if(!file) return;
     const reader = new FileReader();
     reader.onload = (evt)=>{
-      try{ veille = JSON.parse(evt.target.result); renderVeille(); }
+      try{ veille = JSON.parse(evt.target.result).map(sanitizeObject); renderVeille(); }
       catch(err){ alert('Impossible de lire ce fichier JSON.'); }
     };
     reader.readAsText(file);
@@ -731,7 +744,7 @@
 
   fetch('offres_veille.json')
     .then(r => r.ok ? r.json() : Promise.reject())
-    .then(json => { veille = json; renderVeille(); })
+    .then(json => { veille = json.map(sanitizeObject); renderVeille(); })
     .catch(() => { renderHead(); });
 
   document.querySelectorAll('.tab').forEach(tab=>{
