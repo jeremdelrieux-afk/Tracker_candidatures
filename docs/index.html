@@ -91,6 +91,45 @@
   .hist-item:last-child { border-bottom:none; }
   .hist-item .hist-date { font-family:var(--font-mono); font-size:11px; color:var(--slate-light); white-space:nowrap; }
   .hist-item .hist-statut { font-weight:600; }
+
+  /* Badges type de contrat */
+  .contrat-badge { display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap; }
+  .contrat-cdi { background:#E4F5EC; color:#1E8E5A; }
+  .contrat-cdd { background:#EAEFFD; color:#2F5FE0; }
+  .contrat-interim { background:#FBF0DD; color:#B7791F; }
+  .contrat-autre { background:#F1E9FB; color:#6B3FA0; }
+
+  /* Date + repère nouveau */
+  .date-cell { display:flex; align-items:center; gap:6px; }
+  .new-dot { width:7px; height:7px; border-radius:50%; background:#E0473B; flex-shrink:0; }
+
+  /* Bouton ajouté */
+  .addBtn2.added { color:var(--success); cursor:default; font-weight:600; }
+  .addBtn2.added:hover { text-decoration:none; }
+  .success-color { color: var(--success); }
+
+  /* Intitulé cliquable pour la modale de détails */
+  .intitule-link { cursor:pointer; color:var(--ink); font-weight:500; }
+  .intitule-link:hover { color:var(--accent); text-decoration:underline; }
+
+  /* Sélecteur du nombre de lignes affichées */
+  .page-size-select { border:1px solid var(--border); background:var(--panel); padding:7px 10px; border-radius:8px; font-size:13px; }
+
+  /* Toast */
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:11px 18px; border-radius:10px; font-size:13px; font-weight:500; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:100; box-shadow:0 10px 30px rgba(18,24,38,0.25); }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* Modale détails offre */
+  .modal-overlay { position:fixed; inset:0; background:rgba(18,24,38,0.45); display:none; align-items:flex-start; justify-content:center; padding:6vh 16px; z-index:90; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:var(--panel); border-radius:14px; max-width:640px; width:100%; max-height:82vh; overflow-y:auto; padding:26px 28px; box-shadow:0 20px 60px rgba(18,24,38,0.3); }
+  .modal-box h2 { margin:0 0 4px; font-size:18px; }
+  .modal-meta { font-size:12px; color:var(--slate-light); margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .modal-desc { font-size:13px; line-height:1.6; color:var(--slate); white-space:pre-wrap; }
+  .modal-close { position:absolute; top:14px; right:16px; border:none; background:transparent; font-size:18px; cursor:pointer; color:var(--slate-light); padding:4px 8px; border-radius:6px; }
+  .modal-close:hover { background:var(--mist); color:var(--ink); }
+  .modal-box { position:relative; }
+  .modal-footer { margin-top:20px; display:flex; gap:8px; }
 </style>
 </head>
 <body>
@@ -137,6 +176,12 @@
       <input type="file" id="veilleFileInput" accept=".json" style="display:none;">
       <input type="text" id="filterKeyword" class="search-input" placeholder="Recherche libre (optionnel)…">
       <button id="clearFiltersBtn" title="Effacer tous les filtres actifs">Effacer les filtres</button>
+      <select id="pageSizeSelect" class="page-size-select" title="Nombre d'offres affichées">
+        <option value="10">10 / page</option>
+        <option value="50" selected>50 / page</option>
+        <option value="100">100 / page</option>
+        <option value="all">Tout afficher</option>
+      </select>
     </div>
     <span id="veilleCount" style="font-family:var(--font-mono);font-size:12px;color:var(--slate-light);"></span>
   </div>
@@ -151,6 +196,20 @@
   </div>
   <p id="emptyVeille">Charge le fichier data/offres_veille.json généré par <code>npm run veille</code>.</p>
   <p class="note">Clique sur « + Ajouter au tracker » pour créer une ligne de candidature préremplie. Offres synchronisées depuis l'API France Travail, mises à jour périodiquement.</p>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose" title="Fermer">✕</button>
+    <h2 id="modalTitle"></h2>
+    <div class="modal-meta" id="modalMeta"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-footer">
+      <a id="modalLink" href="#" target="_blank" rel="noopener"><button type="button">Voir l'offre sur France Travail →</button></a>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -311,6 +370,10 @@
   // ---------- VEILLE ----------
   let veille = [];
   let filterKeyword = '';
+  let pageSize = 50; // 'all' possible
+  const ADDED_KEY = 'candidatures_veille_added';
+  let addedIds = new Set(JSON.parse(localStorage.getItem(ADDED_KEY) || '[]'));
+  function saveAddedIds(){ localStorage.setItem(ADDED_KEY, JSON.stringify([...addedIds])); }
   const columnFilters = { intitule: new Set(), entreprise: new Set(), lieu: new Set(), typeContrat: new Set() };
   const columns = [
     { key: 'intitule',    label: 'Intitulé' },
@@ -427,31 +490,106 @@
     }
   }
 
+  function contratBadgeClass(typeContrat){
+    const t = (typeContrat||'').toLowerCase();
+    if (t.includes('cdi')) return 'contrat-cdi';
+    if (t.includes('cdd')) return 'contrat-cdd';
+    if (t.includes('intérim') || t.includes('interim')) return 'contrat-interim';
+    return 'contrat-autre';
+  }
+
+  function formatDateRelative(iso){
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso.slice(0,10);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffH = diffMs / 36e5;
+    const diffJ = Math.floor(diffH / 24);
+    const jj = String(d.getDate()).padStart(2,'0');
+    const mois = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'][d.getMonth()];
+    if (diffJ <= 0) return "Aujourd'hui";
+    if (diffJ === 1) return 'Hier';
+    if (diffJ < 7) return `Il y a ${diffJ} j`;
+    return `${jj} ${mois}`;
+  }
+  function isRecent48h(iso){
+    if (!iso) return false;
+    const d = new Date(iso);
+    if (isNaN(d)) return false;
+    return (new Date() - d) < 48 * 36e5;
+  }
+
+  let toastTimer = null;
+  function showToast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+  }
+
+  function openOfferModal(o){
+    document.getElementById('modalTitle').textContent = o.intitule || '';
+    document.getElementById('modalMeta').textContent = [o.entreprise, o.lieu, o.typeContrat].filter(Boolean).join(' · ');
+    document.getElementById('modalDesc').textContent = o.description && o.description.trim()
+      ? o.description.trim()
+      : "Pas de description détaillée disponible pour cette offre — consulte l'annonce complète sur France Travail.";
+    document.getElementById('modalLink').href = o.url;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeOfferModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+  document.getElementById('modalClose').addEventListener('click', closeOfferModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+    if (e.target.id === 'modalOverlay') closeOfferModal();
+  });
+
+  document.getElementById('pageSizeSelect').addEventListener('change', (e)=>{
+    pageSize = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+    renderVeille();
+  });
+
   function renderVeille(keepPopover){
     if (!keepPopover) closePopover();
     renderHead();
     const filtered = getFilteredVeille();
-    document.getElementById('veilleCount').textContent = filtered.length + ' / ' + veille.length + ' offre(s)';
+    const shown = pageSize === 'all' ? filtered : filtered.slice(0, pageSize);
+    const countText = shown.length < filtered.length
+      ? `${shown.length} affichée(s) / ${filtered.length} correspondent / ${veille.length} au total`
+      : `${filtered.length} / ${veille.length} offre(s)`;
+    document.getElementById('veilleCount').textContent = countText;
     document.getElementById('emptyVeille').style.display = filtered.length ? 'none' : 'block';
-    document.getElementById('veilleRows').innerHTML = filtered.map((o) => {
+    document.getElementById('veilleRows').innerHTML = shown.map((o) => {
       const i = veille.indexOf(o);
+      const already = addedIds.has(o.id);
+      const recent = isRecent48h(o.dateCreation);
       return `
       <tr>
-        <td>${esc(o.intitule)}</td>
+        <td><span class="intitule-link" data-idx="${i}">${esc(o.intitule)}</span></td>
         <td>${esc(o.entreprise)}</td>
         <td>${esc(o.lieu)}</td>
-        <td style="font-family:var(--font-mono);font-size:12px;">${o.dateCreation ? o.dateCreation.slice(0,10) : ''}</td>
-        <td>${esc(o.typeContrat||'')}</td>
+        <td><div class="date-cell">${recent ? '<span class="new-dot" title="Publiée il y a moins de 48h"></span>' : ''}${formatDateRelative(o.dateCreation)}</div></td>
+        <td><span class="contrat-badge ${contratBadgeClass(o.typeContrat)}">${esc(o.typeContrat||'—')}</span></td>
         <td><a href="${o.url}" target="_blank" rel="noopener">Voir l'offre →</a></td>
-        <td><button class="addBtn2" data-idx="${i}">+ Ajouter au tracker</button></td>
+        <td><button class="addBtn2 ${already?'added':''}" data-idx="${i}" ${already?'disabled':''}>${already ? '✓ Ajouté' : '+ Ajouter au tracker'}</button></td>
       </tr>`;
     }).join('');
 
+    document.querySelectorAll('.intitule-link').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        openOfferModal(veille[e.target.dataset.idx]);
+      });
+    });
+
     document.querySelectorAll('.addBtn2').forEach(btn=>{
+      if (btn.disabled) return;
       btn.addEventListener('click', (e)=>{
         const o = veille[e.target.dataset.idx];
         addRow({ entreprise:o.entreprise, poste:o.intitule, source:'France Travail', notes:o.url });
-        document.querySelector('[data-tab="tracker"]').click();
+        addedIds.add(o.id);
+        saveAddedIds();
+        showToast(`« ${o.intitule} » ajoutée au tracker`);
+        renderVeille(true);
       });
     });
   }
