@@ -609,7 +609,7 @@
   }
 
   const KEYWORDS = ['réseaux','réseau','systèmes','système','cybersécurité','sécurité','linux','windows','administrateur','support','technicien','infrastructure','cloud','devops','dfir'];
-  const KEYWORDS_RE = new RegExp('(' + [...KEYWORDS].sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')', 'gi');
+  const KEYWORDS_RE = new RegExp('\\b(' + [...KEYWORDS].sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')\\b', 'gi');
   function highlightKeywords(text){
     if (!text) return '';
     return esc(text).replace(KEYWORDS_RE, '<strong class="kw-hl">$1</strong>');
