@@ -2,54 +2,112 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Tracker de candidatures</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi de candidatures</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 30px auto; padding: 0 16px; color: #222; background:#fafafa; }
-  h1 { font-size: 20px; font-weight: 600; }
-  .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid #ddd; }
-  .tab { padding:8px 16px; cursor:pointer; border:none; background:transparent; font-size:14px; border-bottom:2px solid transparent; }
-  .tab.active { border-bottom:2px solid #333; font-weight:600; }
+  :root {
+    --ink: #121826;
+    --slate: #4B5768;
+    --slate-light: #8A93A3;
+    --mist: #F4F6F9;
+    --panel: #FFFFFF;
+    --border: #E3E7EE;
+    --accent: #2F5FE0;
+    --danger: #C53030;
+    --font-sans: -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+    color: var(--ink);
+    background: var(--mist);
+    -webkit-font-smoothing: antialiased;
+  }
+  header.page-head { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
+  h1 { font-size:22px; font-weight:700; letter-spacing:-0.01em; margin:0; }
+  .tagline { font-family:var(--font-mono); font-size:11px; color:var(--slate-light); text-transform:uppercase; letter-spacing:0.06em; }
+  .tabs { display:flex; gap:4px; margin:20px 0 24px; border-bottom:1px solid var(--border); }
+  .tab { padding:10px 4px; margin-right:22px; cursor:pointer; border:none; background:transparent; font-family:var(--font-sans); font-size:14px; font-weight:500; color:var(--slate-light); border-bottom:2px solid transparent; transition:color .15s ease, border-color .15s ease; }
+  .tab:hover { color:var(--ink); }
+  .tab.active { color:var(--ink); border-bottom-color:var(--accent); font-weight:700; }
   .panel { display:none; }
-  .panel.active { display:block; }
-  .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
-  button { padding:8px 14px; border-radius:8px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:13px; }
-  button:hover { background:#f0f0f0; }
-  #stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:20px; }
-  .card { background:#fff; border:1px solid #e5e5e5; border-radius:8px; padding:12px; }
-  .card .label { font-size:12px; color:#777; }
-  .card .value { font-size:22px; font-weight:600; }
-  table { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
-  th, td { padding:6px 8px; border-bottom:1px solid #eee; text-align:left; }
-  th { background:#f5f5f3; font-weight:600; }
-  input, select { width:100%; border:none; background:transparent; font-size:13px; padding:2px; }
-  input:focus, select:focus { outline:1px solid #999; border-radius:4px; }
-  .delBtn { border:none; background:transparent; cursor:pointer; color:#a33; font-size:14px; }
-  .addBtn2 { border:none; background:transparent; cursor:pointer; color:#178; font-size:13px; }
-  #empty, #emptyVeille { color:#888; font-size:13px; }
-  .note { font-size:12px; color:#999; margin-top:20px; }
-  a { color:#178; }
-  code { font-family: 'Courier New', Courier, monospace; letter-spacing: normal; background:#eee; padding:1px 4px; border-radius:3px; font-size:12px; }
+  .panel.active { display:block; animation:fadeIn .2s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(2px);} to{opacity:1; transform:translateY(0);} }
+  .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  button { padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--ink); cursor:pointer; font-size:13px; font-weight:500; font-family:var(--font-sans); transition:border-color .15s ease, background .15s ease; }
+  button:hover { border-color:var(--slate-light); background:var(--mist); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.primary:hover { background:#2650C4; border-color:#2650C4; }
+  #stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:22px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px; border-left:3px solid var(--accent); }
+  .card .label { font-size:11px; color:var(--slate-light); text-transform:uppercase; letter-spacing:0.05em; font-weight:600; }
+  .card .value { font-family:var(--font-mono); font-size:26px; font-weight:600; color:var(--ink); margin-top:2px; }
+  .table-wrap { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:visible; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; vertical-align:middle; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover { background:var(--mist); }
+  th { background:var(--mist); font-weight:600; color:var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:0.04em; position:relative; user-select:none; }
+  th:first-child { border-top-left-radius:12px; } th:last-child { border-top-right-radius:12px; }
+  th.filterable { cursor:pointer; }
+  th .th-inner { display:flex; align-items:center; gap:5px; }
+  th .filter-caret { font-size:9px; color:var(--slate-light); }
+  th.filter-active { color:var(--accent); }
+  th.filter-active .filter-caret { color:var(--accent); }
+  input[type=text], input[type=date], select { width:100%; border:1px solid transparent; background:transparent; font-size:13px; padding:3px 4px; border-radius:5px; font-family:var(--font-sans); color:var(--ink); }
+  input[type=text]:hover, input[type=date]:hover, select:hover { background:var(--mist); }
+  input[type=text]:focus, input[type=date]:focus, select:focus { background:var(--panel); border-color:var(--border); }
+  .search-input { border:1px solid var(--border) !important; background:var(--panel) !important; padding:8px 12px !important; border-radius:8px !important; min-width:220px; }
+  .delBtn { border:none; background:transparent; cursor:pointer; color:var(--danger); font-size:15px; padding:2px 6px; border-radius:6px; }
+  .delBtn:hover { background:#FBE9E9; }
+  .addBtn2 { border:none; background:transparent; cursor:pointer; color:var(--accent); font-size:12px; font-weight:600; white-space:nowrap; }
+  .addBtn2:hover { text-decoration:underline; }
+  .status-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px; font-size:12px; font-weight:600; border:none; }
+  .status-pill::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  #empty, #emptyVeille { color:var(--slate-light); font-size:13px; padding:24px 4px; }
+  .note { font-size:12px; color:var(--slate-light); margin-top:16px; line-height:1.5; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  code { font-family:var(--font-mono); letter-spacing:normal; background:var(--mist); padding:1px 5px; border-radius:4px; font-size:12px; border:1px solid var(--border); }
+  .filter-pop { position:absolute; top:calc(100% + 4px); left:0; z-index:20; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(18,24,38,0.14); min-width:200px; max-width:260px; padding:8px; text-transform:none; letter-spacing:normal; font-weight:400; color:var(--ink); font-size:13px; }
+  .filter-pop-actions { display:flex; justify-content:space-between; gap:6px; padding:4px 4px 8px; border-bottom:1px solid var(--border); margin-bottom:6px; }
+  .filter-pop-actions button { font-size:11px; padding:3px 8px; border-radius:6px; }
+  .filter-pop-list { max-height:220px; overflow-y:auto; }
+  .filter-pop-item { display:flex; align-items:center; gap:7px; padding:5px 4px; border-radius:6px; cursor:pointer; font-weight:400; }
+  .filter-pop-item:hover { background:var(--mist); }
+  .filter-pop-item input { width:auto; margin:0; }
+  .filter-pop-item span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .filter-pop-item .count { font-family:var(--font-mono); font-size:11px; color:var(--slate-light); }
 </style>
 </head>
 <body>
 
-<h1>Suivi de candidatures</h1>
+<header class="page-head">
+  <h1>Suivi de candidatures</h1>
+  <span class="tagline">tracker local · veille France Travail</span>
+</header>
+
 <div class="tabs">
   <button class="tab active" data-tab="tracker">Tracker</button>
   <button class="tab" data-tab="veille">Veille (offres France Travail)</button>
 </div>
 
-<!-- ===== ONGLET TRACKER ===== -->
 <div id="panel-tracker" class="panel active">
   <div class="toolbar">
     <div style="display:flex;gap:8px;">
-      <button id="addBtn">+ Ajouter</button>
+      <button id="addBtn" class="primary">+ Ajouter</button>
       <button id="exportBtn">Exporter (JSON)</button>
       <button id="importBtn">Importer</button>
       <input type="file" id="fileInput" accept=".json" style="display:none;">
     </div>
   </div>
   <div id="stats"></div>
+  <div class="table-wrap">
   <table>
     <thead>
       <tr>
@@ -59,42 +117,46 @@
     </thead>
     <tbody id="rows"></tbody>
   </table>
-  <p id="empty" style="display:none;">Aucune candidature enregistrée. Clique sur "+ Ajouter".</p>
-  <p class="note">Sauvegarde automatique dans ce navigateur. Utilise "Exporter" régulièrement pour garder une copie de sauvegarde.</p>
+  </div>
+  <p id="empty" style="display:none;">Aucune candidature enregistrée. Clique sur « + Ajouter ».</p>
+  <p class="note">Sauvegarde automatique dans ce navigateur. Utilise « Exporter » régulièrement pour garder une copie de sauvegarde.</p>
 </div>
 
-<!-- ===== ONGLET VEILLE ===== -->
 <div id="panel-veille" class="panel">
   <div class="toolbar">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button id="loadVeilleBtn">Charger data/offres_veille.json</button>
       <input type="file" id="veilleFileInput" accept=".json" style="display:none;">
-      <input type="text" id="filterKeyword" placeholder="Filtrer par métier / mot-clé…" style="border:1px solid #ccc;border-radius:8px;padding:7px 10px;font-size:13px;min-width:200px;">
-      <select id="filterLieu" style="border:1px solid #ccc;border-radius:8px;padding:7px 10px;font-size:13px;">
-        <option value="">Tous les lieux</option>
-      </select>
+      <input type="text" id="filterKeyword" class="search-input" placeholder="Recherche libre (optionnel)…">
+      <button id="clearFiltersBtn" title="Effacer tous les filtres actifs">Effacer les filtres</button>
     </div>
-    <span id="veilleCount" style="font-size:13px;color:#777;"></span>
+    <span id="veilleCount" style="font-family:var(--font-mono);font-size:12px;color:var(--slate-light);"></span>
   </div>
+  <p class="note" style="margin-top:-8px;margin-bottom:14px;">Clique sur le titre d'une colonne (Intitulé, Entreprise, Lieu, Contrat) pour filtrer avec la souris, sans clavier.</p>
+  <div class="table-wrap">
   <table>
     <thead>
-      <tr><th>Intitulé</th><th>Entreprise</th><th>Lieu</th><th>Date pub.</th><th>Contrat</th><th>Lien</th><th></th></tr>
+      <tr id="veilleHeadRow"></tr>
     </thead>
     <tbody id="veilleRows"></tbody>
   </table>
+  </div>
   <p id="emptyVeille">Charge le fichier data/offres_veille.json généré par <code>npm run veille</code>.</p>
-  <p class="note">Clique sur "Ajouter au tracker" pour créer une ligne de candidature préremplie. Offres synchronisées depuis l'API France Travail, mises à jour périodiquement.</p>
+  <p class="note">Clique sur « + Ajouter au tracker » pour créer une ligne de candidature préremplie. Offres synchronisées depuis l'API France Travail, mises à jour périodiquement.</p>
 </div>
 
 <script>
 (function(){
-  // ---------- TRACKER ----------
   const KEY = 'candidatures_dje';
   let data = JSON.parse(localStorage.getItem(KEY) || '[]');
   const statuses = ["Envoyée","Relancée","Entretien prévu","Entretien passé","Refus","Acceptée"];
   const statusColors = {
-    "Envoyée": "#e6f1fb", "Relancée": "#faeeda", "Entretien prévu": "#eaf3de",
-    "Entretien passé": "#e1f5ee", "Refus": "#fcebeb", "Acceptée": "#d7f2c5"
+    "Envoyée":          { bg:"#EAEFFD", fg:"#2F5FE0" },
+    "Relancée":         { bg:"#FBF0DD", fg:"#B7791F" },
+    "Entretien prévu":  { bg:"#E4F5EC", fg:"#1E8E5A" },
+    "Entretien passé":  { bg:"#E4F0F5", fg:"#1E6E8E" },
+    "Refus":            { bg:"#FBE9E9", fg:"#C53030" },
+    "Acceptée":         { bg:"#E1F5D8", fg:"#3A8E1E" },
   };
   function save(){ localStorage.setItem(KEY, JSON.stringify(data)); }
   function uid(){ return 'c'+Date.now()+Math.floor(Math.random()*1000); }
@@ -129,21 +191,24 @@
     renderStats();
     const tbody = document.getElementById('rows');
     document.getElementById('empty').style.display = data.length ? 'none' : 'block';
-    tbody.innerHTML = data.map(d => `
+    tbody.innerHTML = data.map(d => {
+      const sc = statusColors[d.statut] || {bg:'#eee', fg:'#555'};
+      return `
       <tr>
-        <td><input value="${esc(d.entreprise)}" placeholder="Entreprise" data-id="${d.id}" data-field="entreprise"/></td>
-        <td><input value="${esc(d.poste)}" placeholder="Poste" data-id="${d.id}" data-field="poste"/></td>
+        <td><input type="text" value="${esc(d.entreprise)}" placeholder="Entreprise" data-id="${d.id}" data-field="entreprise"/></td>
+        <td><input type="text" value="${esc(d.poste)}" placeholder="Poste" data-id="${d.id}" data-field="poste"/></td>
         <td><select data-id="${d.id}" data-field="source">
           ${["France Travail","HelloWork","Indeed","Spontanée","Autre"].map(s=>`<option ${s===d.source?'selected':''}>${s}</option>`).join('')}
         </select></td>
         <td><input type="date" value="${d.dateEnvoi}" data-id="${d.id}" data-field="dateEnvoi"/></td>
-        <td><select data-id="${d.id}" data-field="statut" style="background:${statusColors[d.statut]||'#eee'};border-radius:6px;padding:3px 6px;">
+        <td><select data-id="${d.id}" data-field="statut" class="status-pill" style="background:${sc.bg};color:${sc.fg};">
           ${statuses.map(s=>`<option ${s===d.statut?'selected':''}>${s}</option>`).join('')}
         </select></td>
         <td><input type="date" value="${d.relance||''}" data-id="${d.id}" data-field="relance"/></td>
-        <td><input value="${esc(d.notes)}" placeholder="Notes" data-id="${d.id}" data-field="notes"/></td>
-        <td><button class="delBtn" data-id="${d.id}">✕</button></td>
-      </tr>`).join('');
+        <td><input type="text" value="${esc(d.notes)}" placeholder="Notes" data-id="${d.id}" data-field="notes"/></td>
+        <td><button class="delBtn" data-id="${d.id}" title="Supprimer">✕</button></td>
+      </tr>`;
+    }).join('');
 
     tbody.querySelectorAll('input,select').forEach(el=>{
       el.addEventListener('change', e=> updateField(e.target.dataset.id, e.target.dataset.field, e.target.value));
@@ -179,27 +244,125 @@
   // ---------- VEILLE ----------
   let veille = [];
   let filterKeyword = '';
-  let filterLieu = '';
+  const columnFilters = { intitule: new Set(), entreprise: new Set(), lieu: new Set(), typeContrat: new Set() };
+  const columns = [
+    { key: 'intitule',    label: 'Intitulé' },
+    { key: 'entreprise',  label: 'Entreprise' },
+    { key: 'lieu',        label: 'Lieu' },
+    { key: 'dateCreation',label: 'Date pub.', noFilter: true },
+    { key: 'typeContrat', label: 'Contrat' },
+    { key: 'lien',        label: 'Lien', noFilter: true },
+    { key: 'action',      label: '', noFilter: true },
+  ];
+  let openPopoverKey = null;
 
-  function populateLieuFilter(){
-    const lieux = [...new Set(veille.map(o => o.lieu).filter(Boolean))].sort();
-    const select = document.getElementById('filterLieu');
-    const current = select.value;
-    select.innerHTML = '<option value="">Tous les lieux</option>' +
-      lieux.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
-    select.value = current;
+  function uniqueValues(key){
+    return [...new Set(veille.map(o => (o[key]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
   }
 
   function getFilteredVeille(){
     return veille.filter(o => {
-      const matchKeyword = !filterKeyword || (o.intitule||'').toLowerCase().includes(filterKeyword) || (o.entreprise||'').toLowerCase().includes(filterKeyword);
-      const matchLieu = !filterLieu || o.lieu === filterLieu;
-      return matchKeyword && matchLieu;
+      for (const key of Object.keys(columnFilters)){
+        const set = columnFilters[key];
+        if (set.size > 0 && !set.has((o[key]||'').trim())) return false;
+      }
+      if (filterKeyword){
+        const hay = ((o.intitule||'') + ' ' + (o.entreprise||'')).toLowerCase();
+        if (!hay.includes(filterKeyword)) return false;
+      }
+      return true;
     });
   }
 
-  function renderVeille(){
-    populateLieuFilter();
+  function renderHead(){
+    const row = document.getElementById('veilleHeadRow');
+    row.innerHTML = columns.map(col => {
+      if (col.noFilter) return `<th>${col.label}</th>`;
+      const active = columnFilters[col.key].size > 0;
+      return `<th class="filterable ${active?'filter-active':''}" data-col="${col.key}">
+        <div class="th-inner">${col.label} <span class="filter-caret">▾</span></div>
+      </th>`;
+    }).join('');
+
+    row.querySelectorAll('th.filterable').forEach(th=>{
+      th.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const key = th.dataset.col;
+        if (openPopoverKey === key){ closePopover(); return; }
+        openPopover(th, key);
+      });
+    });
+  }
+
+  function closePopover(){
+    const existing = document.querySelector('.filter-pop');
+    if (existing) existing.remove();
+    openPopoverKey = null;
+  }
+
+  function openPopover(th, key){
+    closePopover();
+    openPopoverKey = key;
+    const values = uniqueValues(key);
+    const selected = columnFilters[key];
+    const pop = document.createElement('div');
+    pop.className = 'filter-pop';
+    pop.innerHTML = `
+      <div class="filter-pop-actions">
+        <button type="button" data-act="all">Tout cocher</button>
+        <button type="button" data-act="none">Tout décocher</button>
+      </div>
+      <div class="filter-pop-list">
+        ${values.map(v=>{
+          const count = veille.filter(o=>(o[key]||'').trim()===v).length;
+          const checked = selected.size===0 || selected.has(v);
+          return `<label class="filter-pop-item">
+            <input type="checkbox" data-val="${esc(v)}" ${checked?'checked':''}>
+            <span>${esc(v)}</span><span class="count">${count}</span>
+          </label>`;
+        }).join('')}
+      </div>`;
+    th.appendChild(pop);
+
+    function applyFromCheckboxes(){
+      const allChecked = [...pop.querySelectorAll('input[type=checkbox]')];
+      const checkedVals = allChecked.filter(c=>c.checked).map(c=>c.dataset.val);
+      if (checkedVals.length === values.length || checkedVals.length === 0){
+        selected.clear();
+      } else {
+        selected.clear();
+        checkedVals.forEach(v=>selected.add(v));
+      }
+      renderVeille(true);
+      const newTh = document.querySelector(`th[data-col="${key}"]`);
+      if (newTh) openPopover(newTh, key);
+    }
+
+    pop.querySelector('[data-act="all"]').addEventListener('click', ()=>{
+      pop.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=true);
+      applyFromCheckboxes();
+    });
+    pop.querySelector('[data-act="none"]').addEventListener('click', ()=>{
+      pop.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+      applyFromCheckboxes();
+    });
+    pop.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', applyFromCheckboxes);
+    });
+
+    document.addEventListener('click', outsideClickHandler);
+  }
+
+  function outsideClickHandler(e){
+    if (!e.target.closest('.filter-pop') && !e.target.closest('th.filterable')){
+      closePopover();
+      document.removeEventListener('click', outsideClickHandler);
+    }
+  }
+
+  function renderVeille(keepPopover){
+    if (!keepPopover) closePopover();
+    renderHead();
     const filtered = getFilteredVeille();
     document.getElementById('veilleCount').textContent = filtered.length + ' / ' + veille.length + ' offre(s)';
     document.getElementById('emptyVeille').style.display = filtered.length ? 'none' : 'block';
@@ -210,9 +373,9 @@
         <td>${esc(o.intitule)}</td>
         <td>${esc(o.entreprise)}</td>
         <td>${esc(o.lieu)}</td>
-        <td>${o.dateCreation ? o.dateCreation.slice(0,10) : ''}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${o.dateCreation ? o.dateCreation.slice(0,10) : ''}</td>
         <td>${esc(o.typeContrat||'')}</td>
-        <td><a href="${o.url}" target="_blank" rel="noopener">Voir l'offre</a></td>
+        <td><a href="${o.url}" target="_blank" rel="noopener">Voir l'offre →</a></td>
         <td><button class="addBtn2" data-idx="${i}">+ Ajouter au tracker</button></td>
       </tr>`;
     }).join('');
@@ -230,8 +393,10 @@
     filterKeyword = e.target.value.trim().toLowerCase();
     renderVeille();
   });
-  document.getElementById('filterLieu').addEventListener('change', (e)=>{
-    filterLieu = e.target.value;
+  document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+    Object.values(columnFilters).forEach(s=>s.clear());
+    filterKeyword = '';
+    document.getElementById('filterKeyword').value = '';
     renderVeille();
   });
 
@@ -247,14 +412,11 @@
     reader.readAsText(file);
   });
 
-  // Tentative de chargement automatique depuis offres_veille.json (présent aux côtés de index.html
-  // sur la version en ligne). Échoue silencieusement en local si le fichier n'est pas servi via http(s).
   fetch('offres_veille.json')
     .then(r => r.ok ? r.json() : Promise.reject())
     .then(json => { veille = json; renderVeille(); })
-    .catch(() => { /* pas de fichier auto-chargé, le bouton manuel reste disponible */ });
+    .catch(() => { renderHead(); });
 
-  // ---------- TABS ----------
   document.querySelectorAll('.tab').forEach(tab=>{
     tab.addEventListener('click', ()=>{
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -265,7 +427,7 @@
   });
 
   render();
-  renderVeille();
+  renderHead();
 })();
 </script>
 </body>
