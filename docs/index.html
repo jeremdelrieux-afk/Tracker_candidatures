@@ -117,6 +117,7 @@
   /* Intitulé cliquable pour la modale de détails */
   .intitule-link { cursor:pointer; color:var(--ink); font-weight:500; }
   .intitule-link:hover { color:var(--accent); text-decoration:underline; }
+  .kw-hl { font-weight:700; }
 
   /* Sélecteur du nombre de lignes affichées */
   .page-size-select { border:1px solid var(--border); background:var(--panel); padding:7px 10px; border-radius:8px; font-size:13px; }
@@ -412,19 +413,41 @@
     const dir = sortState.dir === 'asc' ? 1 : -1;
     return [...list].sort((a,b)=>{
       if (key === 'dateCreation') return (new Date(a.dateCreation) - new Date(b.dateCreation)) * dir;
-      return (a[key]||'').localeCompare(b[key]||'', 'fr') * dir;
+      return (colVal(a,key)||'').localeCompare(colVal(b,key)||'', 'fr') * dir;
     });
   }
 
+  const FRENCH_LOWER_WORDS = new Set(['sur','le','la','les','de','du','des','en','aux','et','à','l']);
+  function toTitleCaseCity(str){
+    return str.split(/([\s-])/).map(part=>{
+      if (part === ' ' || part === '-' || part === '') return part;
+      const lw = part.toLowerCase();
+      if (FRENCH_LOWER_WORDS.has(lw)) return lw;
+      return lw.charAt(0).toUpperCase() + lw.slice(1);
+    }).join('');
+  }
+  function normalizeLieu(lieu){
+    if (!lieu) return lieu;
+    const idx = lieu.indexOf(' - ');
+    if (idx === -1) return toTitleCaseCity(lieu);
+    const code = lieu.slice(0, idx).trim();
+    const city = lieu.slice(idx + 3).trim();
+    return code + ' - ' + toTitleCaseCity(city);
+  }
+  function colVal(o, key){
+    if (key === 'lieu') return normalizeLieu(o.lieu) || '';
+    return (o[key]||'').trim();
+  }
+
   function uniqueValues(key){
-    return [...new Set(veille.map(o => (o[key]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+    return [...new Set(veille.map(o => colVal(o, key)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
   }
 
   function getFilteredVeille(){
     return veille.filter(o => {
       for (const key of Object.keys(columnFilters)){
         const set = columnFilters[key];
-        if (set.size > 0 && !set.has((o[key]||'').trim())) return false;
+        if (set.size > 0 && !set.has(colVal(o, key))) return false;
       }
       if (filterKeyword){
         const hay = ((o.intitule||'') + ' ' + (o.entreprise||'')).toLowerCase();
@@ -487,7 +510,7 @@
       </div>
       <div class="filter-pop-list">
         ${values.map(v=>{
-          const count = veille.filter(o=>(o[key]||'').trim()===v).length;
+          const count = veille.filter(o=>colVal(o,key)===v).length;
           const checked = selected.size===0 || selected.has(v);
           return `<label class="filter-pop-item" title="${esc(v)}">
             <input type="checkbox" data-val="${esc(v)}" ${checked?'checked':''}>
@@ -531,6 +554,13 @@
       closePopover();
       document.removeEventListener('click', outsideClickHandler);
     }
+  }
+
+  const KEYWORDS = ['réseaux','réseau','systèmes','système','cybersécurité','sécurité','linux','windows','administrateur','support','technicien','infrastructure','cloud','devops','dfir'];
+  const KEYWORDS_RE = new RegExp('(' + [...KEYWORDS].sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')', 'gi');
+  function highlightKeywords(text){
+    if (!text) return '';
+    return esc(text).replace(KEYWORDS_RE, '<strong class="kw-hl">$1</strong>');
   }
 
   function contratBadgeClass(typeContrat){
@@ -608,9 +638,9 @@
       const recent = isRecent48h(o.dateCreation);
       return `
       <tr>
-        <td><span class="intitule-link" data-idx="${i}">${esc(o.intitule)}</span></td>
+        <td><span class="intitule-link" data-idx="${i}">${highlightKeywords(o.intitule)}</span></td>
         <td>${esc(o.entreprise)}</td>
-        <td>${esc(o.lieu)}</td>
+        <td>${esc(normalizeLieu(o.lieu))}</td>
         <td><div class="date-cell">${recent ? '<span class="new-dot" title="Publiée il y a moins de 48h"></span>' : ''}${formatDateRelative(o.dateCreation)}</div></td>
         <td><span class="contrat-badge ${contratBadgeClass(o.typeContrat)}">${esc(o.typeContrat||'—')}</span></td>
         <td><a href="${o.url}" target="_blank" rel="noopener">Voir l'offre →</a></td>
