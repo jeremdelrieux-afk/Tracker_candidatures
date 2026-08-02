@@ -59,6 +59,12 @@
   th .filter-caret { font-size:9px; color:var(--slate-light); }
   th.filter-active { color:var(--accent); }
   th.filter-active .filter-caret { color:var(--accent); }
+  th.sortable { cursor:pointer; }
+  .sort-label { cursor:pointer; }
+  .sort-label:hover { color:var(--ink); }
+  .sort-arrow { font-size:10px; margin-left:2px; }
+  .sort-arrow.idle { color:var(--slate-light); opacity:.5; }
+  .sort-arrow.active { color:var(--accent); }
   input[type=text], input[type=date], select { width:100%; border:1px solid transparent; background:transparent; font-size:13px; padding:3px 4px; border-radius:5px; font-family:var(--font-sans); color:var(--ink); }
   input[type=text]:hover, input[type=date]:hover, select:hover { background:var(--mist); }
   input[type=text]:focus, input[type=date]:focus, select:focus { background:var(--panel); border-color:var(--border); }
@@ -100,7 +106,7 @@
   .contrat-autre { background:#F1E9FB; color:#6B3FA0; }
 
   /* Date + repère nouveau */
-  .date-cell { display:flex; align-items:center; gap:6px; }
+  .date-cell { display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:12px; color:var(--slate); }
   .new-dot { width:7px; height:7px; border-radius:50%; background:#E0473B; flex-shrink:0; }
 
   /* Bouton ajouté */
@@ -376,15 +382,39 @@
   function saveAddedIds(){ localStorage.setItem(ADDED_KEY, JSON.stringify([...addedIds])); }
   const columnFilters = { intitule: new Set(), entreprise: new Set(), lieu: new Set(), typeContrat: new Set() };
   const columns = [
-    { key: 'intitule',    label: 'Intitulé' },
-    { key: 'entreprise',  label: 'Entreprise' },
-    { key: 'lieu',        label: 'Lieu' },
-    { key: 'dateCreation',label: 'Date pub.', noFilter: true },
-    { key: 'typeContrat', label: 'Contrat' },
-    { key: 'lien',        label: 'Lien', noFilter: true },
-    { key: 'action',      label: '', noFilter: true },
+    { key: 'intitule',    label: 'Intitulé',   sortable: true },
+    { key: 'entreprise',  label: 'Entreprise', sortable: true },
+    { key: 'lieu',        label: 'Lieu',       sortable: true },
+    { key: 'dateCreation',label: 'Date pub.',  sortable: true, noFilter: true },
+    { key: 'typeContrat', label: 'Contrat',    sortable: true },
+    { key: 'lien',        label: 'Lien',       sortable: false, noFilter: true },
+    { key: 'action',      label: '',           sortable: false, noFilter: true },
   ];
   let openPopoverKey = null;
+  let sortState = { key: null, dir: 'asc' };
+
+  function toggleSort(key){
+    if (sortState.key === key){
+      if (sortState.dir === 'asc') { sortState.dir = 'desc'; }
+      else { sortState.key = null; sortState.dir = 'asc'; }
+    } else {
+      sortState.key = key; sortState.dir = 'asc';
+    }
+    renderVeille();
+  }
+  function sortArrowHtml(key){
+    if (sortState.key !== key) return '<span class="sort-arrow idle">↕</span>';
+    return sortState.dir === 'asc' ? '<span class="sort-arrow active">↑</span>' : '<span class="sort-arrow active">↓</span>';
+  }
+  function applySort(list){
+    if (!sortState.key) return list;
+    const key = sortState.key;
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    return [...list].sort((a,b)=>{
+      if (key === 'dateCreation') return (new Date(a.dateCreation) - new Date(b.dateCreation)) * dir;
+      return (a[key]||'').localeCompare(b[key]||'', 'fr') * dir;
+    });
+  }
 
   function uniqueValues(key){
     return [...new Set(veille.map(o => (o[key]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
@@ -407,19 +437,32 @@
   function renderHead(){
     const row = document.getElementById('veilleHeadRow');
     row.innerHTML = columns.map(col => {
-      if (col.noFilter) return `<th>${col.label}</th>`;
+      const arrow = col.sortable ? sortArrowHtml(col.key) : '';
+      const labelSpan = col.sortable
+        ? `<span class="sort-label" data-sort="${col.key}">${col.label}</span>`
+        : `<span>${col.label}</span>`;
+      if (col.noFilter){
+        return `<th class="${col.sortable?'sortable':''}"><div class="th-inner">${labelSpan}${arrow}</div></th>`;
+      }
       const active = columnFilters[col.key].size > 0;
-      return `<th class="filterable ${active?'filter-active':''}" data-col="${col.key}">
-        <div class="th-inner">${col.label} <span class="filter-caret">▾</span></div>
+      return `<th class="filterable ${active?'filter-active':''}">
+        <div class="th-inner">${labelSpan}${arrow}<span class="filter-caret" data-filtercol="${col.key}">▾</span></div>
       </th>`;
     }).join('');
 
-    row.querySelectorAll('th.filterable').forEach(th=>{
-      th.addEventListener('click', (e)=>{
+    row.querySelectorAll('.filter-caret[data-filtercol]').forEach(caret=>{
+      caret.addEventListener('click', (e)=>{
         e.stopPropagation();
-        const key = th.dataset.col;
+        const key = caret.dataset.filtercol;
+        const th = caret.closest('th');
         if (openPopoverKey === key){ closePopover(); return; }
         openPopover(th, key);
+      });
+    });
+    row.querySelectorAll('.sort-label[data-sort]').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        toggleSort(el.dataset.sort);
       });
     });
   }
@@ -552,7 +595,7 @@
   function renderVeille(keepPopover){
     if (!keepPopover) closePopover();
     renderHead();
-    const filtered = getFilteredVeille();
+    const filtered = applySort(getFilteredVeille());
     const shown = pageSize === 'all' ? filtered : filtered.slice(0, pageSize);
     const countText = shown.length < filtered.length
       ? `${shown.length} affichée(s) / ${filtered.length} correspondent / ${veille.length} au total`
