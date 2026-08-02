@@ -62,6 +62,7 @@
   th.sortable { cursor:pointer; }
   .sort-label { cursor:pointer; }
   .sort-label:hover { color:var(--ink); }
+  .sort-label.active { color:var(--accent); font-weight:700; }
   .sort-arrow { font-size:10px; margin-left:2px; }
   .sort-arrow.idle { color:var(--slate-light); opacity:.5; }
   .sort-arrow.active { color:var(--accent); }
@@ -106,7 +107,7 @@
   .contrat-autre { background:#F1E9FB; color:#6B3FA0; }
 
   /* Date + repère nouveau */
-  .date-cell { display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:12px; color:var(--slate); }
+  .date-cell { display:flex; align-items:center; gap:6px; font-family:var(--font-sans); letter-spacing:normal; font-size:13px; color:var(--slate); }
   .new-dot { width:7px; height:7px; border-radius:50%; background:#E0473B; flex-shrink:0; }
 
   /* Bouton ajouté */
@@ -476,8 +477,9 @@
     const row = document.getElementById('veilleHeadRow');
     row.innerHTML = columns.map(col => {
       const arrow = col.sortable ? sortArrowHtml(col.key) : '';
+      const isSortActive = sortState.key === col.key;
       const labelSpan = col.sortable
-        ? `<span class="sort-label" data-sort="${col.key}">${col.label}</span>`
+        ? `<span class="sort-label ${isSortActive?'active':''}" data-sort="${col.key}">${col.label}</span>`
         : `<span>${col.label}</span>`;
       if (col.noFilter){
         return `<th class="${col.sortable?'sortable':''}"><div class="th-inner">${labelSpan}${arrow}</div></th>`;
