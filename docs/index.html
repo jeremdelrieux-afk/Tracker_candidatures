@@ -208,6 +208,10 @@
     };
     reader.readAsText(file);
   });
+fetch('offres_veille.json')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(json => { veille = json; renderVeille(); })
+    .catch(() => { /* pas de fichier auto-chargé, le bouton manuel reste disponible */ });
 
   // ---------- TABS ----------
   document.querySelectorAll('.tab').forEach(tab=>{
