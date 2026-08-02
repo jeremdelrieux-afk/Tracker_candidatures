@@ -66,9 +66,13 @@
 <!-- ===== ONGLET VEILLE ===== -->
 <div id="panel-veille" class="panel">
   <div class="toolbar">
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button id="loadVeilleBtn">Charger data/offres_veille.json</button>
       <input type="file" id="veilleFileInput" accept=".json" style="display:none;">
+      <input type="text" id="filterKeyword" placeholder="Filtrer par métier / mot-clé…" style="border:1px solid #ccc;border-radius:8px;padding:7px 10px;font-size:13px;min-width:200px;">
+      <select id="filterLieu" style="border:1px solid #ccc;border-radius:8px;padding:7px 10px;font-size:13px;">
+        <option value="">Tous les lieux</option>
+      </select>
     </div>
     <span id="veilleCount" style="font-size:13px;color:#777;"></span>
   </div>
@@ -174,10 +178,34 @@
 
   // ---------- VEILLE ----------
   let veille = [];
+  let filterKeyword = '';
+  let filterLieu = '';
+
+  function populateLieuFilter(){
+    const lieux = [...new Set(veille.map(o => o.lieu).filter(Boolean))].sort();
+    const select = document.getElementById('filterLieu');
+    const current = select.value;
+    select.innerHTML = '<option value="">Tous les lieux</option>' +
+      lieux.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+    select.value = current;
+  }
+
+  function getFilteredVeille(){
+    return veille.filter(o => {
+      const matchKeyword = !filterKeyword || (o.intitule||'').toLowerCase().includes(filterKeyword) || (o.entreprise||'').toLowerCase().includes(filterKeyword);
+      const matchLieu = !filterLieu || o.lieu === filterLieu;
+      return matchKeyword && matchLieu;
+    });
+  }
+
   function renderVeille(){
-    document.getElementById('veilleCount').textContent = veille.length + ' offre(s) en base';
-    document.getElementById('emptyVeille').style.display = veille.length ? 'none' : 'block';
-    document.getElementById('veilleRows').innerHTML = veille.map((o, i) => `
+    populateLieuFilter();
+    const filtered = getFilteredVeille();
+    document.getElementById('veilleCount').textContent = filtered.length + ' / ' + veille.length + ' offre(s)';
+    document.getElementById('emptyVeille').style.display = filtered.length ? 'none' : 'block';
+    document.getElementById('veilleRows').innerHTML = filtered.map((o) => {
+      const i = veille.indexOf(o);
+      return `
       <tr>
         <td>${esc(o.intitule)}</td>
         <td>${esc(o.entreprise)}</td>
@@ -186,7 +214,8 @@
         <td>${esc(o.typeContrat||'')}</td>
         <td><a href="${o.url}" target="_blank" rel="noopener">Voir l'offre</a></td>
         <td><button class="addBtn2" data-idx="${i}">+ Ajouter au tracker</button></td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
     document.querySelectorAll('.addBtn2').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
@@ -196,6 +225,15 @@
       });
     });
   }
+
+  document.getElementById('filterKeyword').addEventListener('input', (e)=>{
+    filterKeyword = e.target.value.trim().toLowerCase();
+    renderVeille();
+  });
+  document.getElementById('filterLieu').addEventListener('change', (e)=>{
+    filterLieu = e.target.value;
+    renderVeille();
+  });
 
   document.getElementById('loadVeilleBtn').addEventListener('click', ()=> document.getElementById('veilleFileInput').click());
   document.getElementById('veilleFileInput').addEventListener('change', (e)=>{
@@ -208,7 +246,10 @@
     };
     reader.readAsText(file);
   });
-fetch('offres_veille.json')
+
+  // Tentative de chargement automatique depuis offres_veille.json (présent aux côtés de index.html
+  // sur la version en ligne). Échoue silencieusement en local si le fichier n'est pas servi via http(s).
+  fetch('offres_veille.json')
     .then(r => r.ok ? r.json() : Promise.reject())
     .then(json => { veille = json; renderVeille(); })
     .catch(() => { /* pas de fichier auto-chargé, le bouton manuel reste disponible */ });
