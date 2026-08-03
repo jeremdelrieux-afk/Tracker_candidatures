@@ -598,12 +598,15 @@
     function applyFromCheckboxes(){
       const allChecked = [...pop.querySelectorAll('input[type=checkbox]')];
       const checkedVals = allChecked.filter(c=>c.checked).map(c=>c.dataset.val);
-      if (checkedVals.length === values.length || checkedVals.length === 0){
-        selected.clear();
-      } else {
-        selected.clear();
+      selected.clear();
+      if (checkedVals.length === 0){
+        // Aucune case cochée : on veut n'afficher aucune ligne, pas "aucun filtre".
+        // On ajoute une valeur sentinelle qui ne correspondra jamais à une donnée réelle.
+        selected.add('\u0000__AUCUNE_SELECTION__');
+      } else if (checkedVals.length < values.length){
         checkedVals.forEach(v=>selected.add(v));
       }
+      // Si tout est coché, on laisse le Set vide : équivaut à "pas de filtre", donc tout s'affiche.
       renderVeille(true);
       const newTh = document.querySelector(`th[data-col="${key}"]`);
       if (newTh) openPopover(newTh, key);
