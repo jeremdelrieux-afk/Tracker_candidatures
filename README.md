@@ -1,8 +1,20 @@
 # tracker-candidatures
 
-Suivi de candidatures + veille automatisée sur l'API France Travail (offres d'emploi v2).
+Suivi de candidatures + veille automatisée sur l'API France Travail (offres d'emploi v2) — un outil personnel construit de A à Z : script Node.js, authentification OAuth2, interface interactive, hébergement GitHub Pages, sécurisé après plusieurs revues de code.
 
-> Guide complet pas-à-pas pour débutant (création des comptes, installation, dépannage) disponible séparément — ce README est une référence rapide qui suppose les prérequis ci-dessous déjà en place.
+**[Voir la démo en ligne →](https://jeremdelrieux-afk.github.io/Tracker_candidatures/)**
+
+> Guide complet pas-à-pas pour débutant (création des comptes, installation, dépannage, revue de sécurité) disponible séparément — ce README est une référence rapide qui suppose les prérequis ci-dessous déjà en place.
+
+## Ce que fait l'outil
+
+- **Onglet Tracker** — suivi manuel des candidatures (statut, dates, relances, notes), avec historique des changements de statut par candidature.
+- **Onglet Veille** — récupère automatiquement les offres correspondant à des critères définis (mots-clés, zone géographique), avec :
+  - filtres par colonne cliquables à la souris (intitulé, entreprise, lieu, contrat)
+  - tri par colonne
+  - badges colorés par type de contrat, date relative, repère "nouveau" (< 48h)
+  - modale de détails avec description complète de l'offre
+  - ajout en un clic vers le tracker, avec état "✓ Ajouté" persistant
 
 ## Prérequis
 
@@ -13,19 +25,21 @@ Suivi de candidatures + veille automatisée sur l'API France Travail (offres d'e
 
 ## Structure
 
+```
 tracker-candidatures/
 ├── .env.example
 ├── .gitignore
 ├── package.json
+├── refresh.sh              # veille + publication en une commande
 ├── docs/
-│ └── index.html
+│   └── index.html          # interface, servie par GitHub Pages
 ├── scripts/
-│ ├── lib/auth.mjs
-│ ├── test-api-francetravail.mjs
-│ └── search-offres.mjs
+│   ├── lib/auth.mjs
+│   ├── test-api-francetravail.mjs
+│   └── search-offres.mjs
 └── data/
-└── offres_veille.json
-
+    └── offres_veille.json
+```
 
 ## Installation
 
@@ -56,28 +70,45 @@ npm run veille
 
 Écrit/complète `data/offres_veille.json`. Déduplique par ID d'offre et par paire entreprise+intitulé (pour éviter le bruit des diffusions multi-villes).
 
-Automatisation possible via cron :
+## Automatisation complète (veille + publication en ligne)
+
+Le script `refresh.sh` enchaîne veille, copie vers `docs/`, et envoi Git en une seule commande — il ne pousse que s'il y a réellement de nouvelles offres :
+
 ```bash
-0 8 * * * cd /chemin/vers/tracker-candidatures && npm run veille
+./refresh.sh
+```
+
+Pour l'exécuter automatiquement chaque jour via `cron` :
+
+```bash
+crontab -e
+# tous les jours à 11h :
+0 11 * * * /chemin/vers/tracker-candidatures/refresh.sh >> /chemin/vers/tracker-candidatures/refresh.log 2>&1
 ```
 
 ## Interface
 
-Ouvre `docs/index.html` dans un navigateur.
+En local : ouvre `docs/index.html` dans un navigateur (le chargement automatique des offres nécessite un vrai serveur — utilise le bouton "Charger" en local, ou consulte directement la [démo en ligne](https://jeremdelrieux-afk.github.io/Tracker_candidatures/)).
 
-- **Onglet Tracker** : suivi manuel (statut, dates, relances, notes), sauvegarde locale navigateur (localStorage — propre à cet ordinateur et ce navigateur). Exporte régulièrement en `.json`.
-- **Onglet Veille** : charge `data/offres_veille.json`, bouton "+ Ajouter au tracker" pour préremplir une candidature.
+- **Onglet Tracker** : sauvegarde locale navigateur (`localStorage`, propre à cet ordinateur et ce navigateur). Exporte régulièrement en `.json`.
+- **Onglet Veille** : charge `data/offres_veille.json` automatiquement en ligne, ou via le bouton en local.
 
 ## Dépannage rapide
 
 | Erreur | Cause probable |
 |---|---|
-| `npm : commande introuvable` | Node.js/npm non installés |
+| `npm : commande introuvable` | Node.js/npm non installés, ou commande lancée hors du dossier du projet |
 | `invalid_client` (400) | API "Offres d'emploi v2" pas encore souscrite sur francetravail.io |
 | Résultats trop éloignés géographiquement | `distance` utilisé sans `commune`, ou mauvais code INSEE |
+| Page blanche / erreurs en local | Le chargement automatique nécessite un vrai serveur — utilise le bouton "Charger" en local |
 
 ## Sécurité
 
 - `.env` exclu via `.gitignore`, jamais commité.
 - Ne partage jamais ton Client Secret.
 - Un secret exposé accidentellement doit être régénéré sur francetravail.io, pas juste supprimé du dernier commit (reste dans l'historique git).
+- Code passé par plusieurs revues de sécurité successives (échappement HTML, protection contre la pollution de prototype, validation des protocoles d'URL) — détail complet dans le guide.
+
+## Pile technique
+
+Node.js · API REST (OAuth2 client_credentials) · JavaScript vanilla (aucun framework front) · GitHub Pages · Git/GitHub
