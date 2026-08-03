@@ -138,6 +138,17 @@
   .modal-close:hover { background:var(--mist); color:var(--ink); }
   .modal-box { position:relative; }
   .modal-footer { margin-top:20px; display:flex; gap:8px; }
+
+  /* Mobile : le tableau défile horizontalement plutôt que de forcer un zoom sur toute la page */
+  @media (max-width: 700px) {
+    body { padding: 20px 12px 60px; }
+    h1 { font-size: 19px; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 720px; }
+    th, td { padding: 8px 9px; font-size: 12px; }
+    .search-input { min-width: 160px; }
+    .toolbar { gap: 8px; }
+  }
 </style>
 </head>
 <body>
