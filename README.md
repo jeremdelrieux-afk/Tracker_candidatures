@@ -4,6 +4,8 @@ Suivi de candidatures + veille automatisée sur l'API France Travail (offres d'e
 
 **[Voir la démo en ligne →](https://jeremdelrieux-afk.github.io/Tracker_candidatures/)**
 
+> La démo affiche les offres correspondant à mes propres critères de recherche (Alpes-Maritimes et Var). L'outil est personnalisable : voir la section « Lancer la veille » pour adapter les mots-clés et la zone géographique à ton propre usage.
+
 > Guide complet pas-à-pas pour débutant (création des comptes, installation, dépannage, revue de sécurité) disponible séparément — ce README est une référence rapide qui suppose les prérequis ci-dessous déjà en place.
 
 ## Ce que fait l'outil
