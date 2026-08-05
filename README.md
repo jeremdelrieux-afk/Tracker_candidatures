@@ -114,3 +114,7 @@ En local : ouvre `docs/index.html` dans un navigateur (le chargement automatique
 ## Pile technique
 
 Node.js · API REST (OAuth2 client_credentials) · JavaScript vanilla (aucun framework front) · GitHub Pages · Git/GitHub
+
+## Méthode de développement
+
+Projet réalisé en pair programming avec Claude (Anthropic) : l'écriture du code, le débogage et les revues de sécurité successives ont été faits avec son assistance, sous mon pilotage pour l'architecture, les choix fonctionnels, les tests et les décisions finales.
