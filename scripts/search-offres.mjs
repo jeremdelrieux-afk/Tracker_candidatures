@@ -16,6 +16,31 @@ const CRITERES = [
 ];
 // ----------------------------------------------------
 
+// --- Filtre anti faux-positifs ---
+// L'API matche les mots-clés individuellement (pas en phrase exacte) : une recherche sur
+// "reseaux informatique" peut donc remonter une offre contenant juste "réseaux", sans rapport
+// avec l'informatique (ex. "Géomètre en détection de réseaux enterrés"). Cette liste exclut les
+// intitulés contenant un de ces mots, même s'ils ont matché un bon mot-clé par ailleurs.
+// À enrichir au fil des faux positifs rencontrés.
+const MOTS_EXCLUS = [
+  'geometre', 'topographe', 'geomaticien',
+  'canalisateur', 'canalisation',
+  'assainissement', 'voirie',
+  'egoutier', 'fontainier', 'vrd',
+  'monteur de reseaux electriques', 'reseaux electriques',
+];
+
+function normaliserPourComparaison(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // retire les accents (é → e, etc.)
+}
+
+function estFauxPositif(offre) {
+  const intituleNormalise = normaliserPourComparaison(offre.intitule);
+  return MOTS_EXCLUS.some((mot) => intituleNormalise.includes(mot));
+}
+
 async function searchOffres({ motsCles, commune, distance }) {
   const token = await getAccessToken();
   const params = new URLSearchParams({
@@ -75,8 +100,15 @@ async function main() {
   for (const critere of CRITERES) {
     console.log(`🔍 "${critere.motsCles}" — centre ${critere.commune}, rayon ${critere.distance}km`);
     const offres = await searchOffres(critere);
-    const inedites = offres.filter((o) => !existingIds.has(o.id));
-    console.log(`   → ${offres.length} offre(s), dont ${inedites.length} nouvelle(s)`);
+
+    const rejetees = offres.filter((o) => estFauxPositif(o));
+    if (rejetees.length > 0) {
+      console.log(`   🚫 ${rejetees.length} faux positif(s) écarté(s) : ${rejetees.map((o) => o.intitule).join(' | ')}`);
+    }
+    const offresFiltrees = offres.filter((o) => !estFauxPositif(o));
+
+    const inedites = offresFiltrees.filter((o) => !existingIds.has(o.id));
+    console.log(`   → ${offresFiltrees.length} offre(s) pertinente(s), dont ${inedites.length} nouvelle(s)`);
     nouvelles.push(...inedites.map((o) => toVeilleEntry(o, critere)));
   }
 
