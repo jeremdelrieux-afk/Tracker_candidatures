@@ -1,5 +1,18 @@
 [
   {
+    "id": "210CVPC",
+    "intitule": "Apprenti Master Réseaux et Télécommunications (H/F)",
+    "entreprise": "MAIRIE",
+    "lieu": "06 - Valbonne",
+    "dateCreation": "2026-06-22T15:25:57.938Z",
+    "typeContrat": "CDD - 24 Mois",
+    "description": "Au sein de la Direction des Systèmes d'Information, sous la responsabilité du Directeur de la DSI, vous aurez pour principales missions, dans le cadre de votre apprentissage, de gérer la sécurité organisationnelle, la sécurité des systèmes et la sécurité des réseaux.\nLes missions :\nRédaction de la Politique de sécurité du système d'information (PSSI) de la Collectivité\nParticipe à la rédaction du Plan de Reprise d'Activité (PRA) et aux exercices de simulation \nParticipe à la sécurisation des accès utilisateurs :\n Mise en place de l'authentification multi-facteurs (MFA) sur les accès MS365 et accès extérieurs\n Mise en place d'un gestionnaire de mots de passe interne pour les agents de la Collectivité\nParticipe à l'administration et la sécurisation du tenant Microsoft 365 \nParticipe à l'administration et la sécurisation et des systèmes Windows & Linux (incluant Docker)\nÉtude sur la faisabilité du déploiement d'un bastion d'accès\nÉtude sur la faisabilité et la nécessité du déploiement d'un orchestrateur de conteneurs\nParticipe à la refonte de l'infrastructure réseau de la Collectivité pour en renforcer la sécurité et l'évolutivité :\n Cartographie du réseau\n Centralisation des configurations dans HPE IMC et Aruba Central\n Refonte complète de la segmentation réseau (refonte des VLAN, ACL et règles de filtrage)\n Renforcement de la priorisation des paquets (QoS)\n Étude sur la faisabilité de la mise en place d'un contrôle d'accès au réseau (NAC)\n\nConditions de travail et avantages :\nHoraires de bureaux\nDéplacement possible sur sites\nTemps de travail en alternance avec l'école (planning à définir)\nTickets restaurant valeur 7,50 € (participation employeur 4,50 €)\nParticipation employeur aux frais de transport (sous conditions)\nRémunération selon âge et niveau du diplôme préparé\n\nQualités professionnelles :\nAvoir entre 18 et 30 ans et avoir réussi les tests de sélection organisés par l'organisme de formation\nEtre obligatoirement inscrit dans un organisme de formation préparant au Master Réseaux et Télécommunications\nEsprit d'équipe et rigueur\n\nQualités requises :\nEtre force de proposition\nDisponibilité\nSens des responsabilités\nQualités relationnelles\nQualités pédagogiques\nDynamisme\nDiscrétion et devoir de réserve\nCapacité d'adaptation, d'organisation et de gestion du temps\nSens du service public",
+    "url": "https://candidat.francetravail.fr/offres/recherche/detail/210CVPC",
+    "motsClesRecherche": "reseaux informatique",
+    "dateRecuperation": "2026-08-14T09:00:03.856Z",
+    "ajouteAuTracker": false
+  },
+  {
     "id": "5901807",
     "intitule": "Architecte sécurité H/F",
     "entreprise": "Non précisé",
